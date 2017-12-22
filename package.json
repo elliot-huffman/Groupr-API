@@ -1,4 +1,23 @@
 {
-  "name": "three-horsemen-api-server",
-  "version": "0.0.1"
+  "name": "api-server",
+  "version": "0.0.1",
+  "description": "The Four Horsemen API Server",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.elliot-labs.com/The-4-Horsemen/Server.git"
+  },
+  "keywords": [
+    "API",
+    "Server",
+    "Backend",
+    "App",
+    "Elliot",
+    "Horsemen"
+  ],
+  "author": "Elliot Huffman <ehuffman@elliot-labs.com> (https://elliot-labs.com)",
+  "license": "Apache-2.0"
 }
