@@ -24,9 +24,9 @@ var connectionURL = testDBSettings.url + ":" + testDBSettings.port;
 var database = new MongoInterface.Database(connectionURL, testDBSettings.databaseName, testDBSettings.userName, testDBSettings.password);
 
 // Read the DB
-var results = database.read(testDBSettings.collection, testDBSettings.query);
+var readResults = database.read(testDBSettings.collection, testDBSettings.query);
 
-results.then((results) => {
+readResults.then((results) => {
     console.log(results);
     database.close();
     return true;
