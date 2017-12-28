@@ -32,20 +32,20 @@ export class Database {
         this.Password = Password;
 
         // Since the connect method returns a promise, collect that promise and make it available.
+        // If the connection fails, throw the error.
         this.ConnectionSession = mongoDB.MongoClient.connect(this.URL);
-        this.ConnectionSession.then(
-            (SuccessfulResults) => {
+        this.ConnectionSession.then((SuccessfulResults) => {
                 self.DBSession = SuccessfulResults;
                 self.DBInstance = SuccessfulResults.db(this.DB);
-            },
-            (errorResult) => {
-                throw errorResult;
             });
+        this.ConnectionSession.catch((errorResult) => {
+            throw errorResult;
+        });
     }
 
     // Read the database.
     // If using an ID, pass the id as a string, it will be auto converted for you.
-    read(collection: string, query: queryStructure) {
+    read(collection: string, query: queryStructure): Promise<Array<any>> {
         // allow "this" to be accessible from within anonymous functions.
         var self = this;
 
@@ -54,7 +54,6 @@ export class Database {
             // Convert the _ID to a mongoDB ObjectID type for the query.
             query._id = new mongoDB.ObjectID(query._id);
         }
-
         // Create a promise execute the request asynchronously.
         return new Promise((resolve, reject) => {
             // Only execute after the MongoDB interface has a connection to the server.
@@ -70,35 +69,101 @@ export class Database {
                     // If there is no error, return the results of the query to the promise.
                     resolve(searchResults);
                 });
-            },
-            (error) => {
-                // Spit out the error on the console for debugging if one occurs.
-                console.log(error);
             });
         });
     }
 
-    // Write to the database.
-    write(collection: string, value: Object) {
+    // Write document(s) to a collection in the database.
+    write(collection: string, documentArray: Array<Object>): Promise<mongoDB.InsertWriteOpResult> {
         // allow "this" to be accessible from within anonymous functions.
         var self = this;
-        // pass
-        // return result;
+
+        // Create a promise execute the request asynchronously.
+        return new Promise((resolve, reject) => {
+            // Only execute after the MongoDB interface has a connection to the server.
+            self.ConnectionSession.then((results) => {
+
+                // Initialize a collection instance for manipulation.
+                const collectionInstance = self.DBInstance.collection(collection);
+
+                // Insert the document array into the collection.
+                collectionInstance.insertMany(documentArray, (error, creationResults) => {
+                    // If there is an error, return that error to the promise and stop the execution.
+                    if (error) reject(error);
+                    // If there is no error, return the results of the document creation to the promise.
+                    resolve(creationResults);
+                }); 
+            });
+        });
+    }
+
+    // Delete a document by the ID of the document.
+    delete(collection: string, _id: string|mongoDB.ObjectID): Promise<mongoDB.DeleteWriteOpResultObject> {
+        // allow "this" to be accessible from within anonymous functions.
+        var self = this;
+
+        // Check if the _id is a string and if it is, convert it to an ObjectID.
+        if (typeof _id === "string") {
+            // Convert the _ID to a mongoDB ObjectID type for the query.
+            _id = new mongoDB.ObjectID(_id);
+        }
+
+        // Create a promise execute the request asynchronously.
+        return new Promise((resolve, reject) => {
+            // Only execute after the MongoDB interface has a connection to the server.
+            self.ConnectionSession.then((results) => {
+
+                // Initialize a collection instance for manipulation.
+                const collectionInstance = self.DBInstance.collection(collection);
+
+                // Run the delete operation on the collection for the document specified by its ID.
+                collectionInstance.deleteOne({"_id": _id}, (error, deleteResults) => {
+                    // If there is an error, return that error to the promise and stop the execution.
+                    if (error) reject(error);
+                    // If there is no error, return the results of the deletion to the promise.
+                    resolve(deleteResults);
+                });
+            });
+        });
     }
 
     // Update a document
-    update(collection: string, query: string, value: Object) {
+    // Update operation definitions:
+    // https://docs.mongodb.com/manual/reference/operator/update/
+    update(collection: string, _id: string|mongoDB.ObjectID, updateOperation: Object): Promise<mongoDB.UpdateWriteOpResult> {
         // allow "this" to be accessible from within anonymous functions.
         var self = this;
-        // pass
-        // return result;
+
+        // Check if the _id is a string and if it is, convert it to an ObjectID.
+        if (typeof _id === "string") {
+            // Convert the _ID to a mongoDB ObjectID type for the query.
+            _id = new mongoDB.ObjectID(_id);
+        }
+
+        // Create a promise execute the request asynchronously.
+        return new Promise((resolve, reject) => {
+            // Only execute after the MongoDB interface has a connection to the server.
+            self.ConnectionSession.then((results) => {
+
+                // Initialize a collection instance for manipulation.
+                const collectionInstance = self.DBInstance.collection(collection);
+
+                // Run the update operation on the collection to find the document specified in the query and then run the specified operation.
+                collectionInstance.updateOne({"_id": _id}, updateOperation, (error, updateResults) => {
+                    // If there is an error, return that error to the promise and stop the execution.
+                    if (error) reject(error);
+                    // If there is no error, return the results of the update to the promise.
+                    resolve(updateResults);
+                });
+            });
+        });
     }
 
     // Close Session
-    close() {
+    close(): Promise<void> {
         // Closes the database connection.
         // This is generally not needed and for proper connection and resource usage, this should not be invoked as the interface reuses connections.
         // This is just mostly here for the test script to exit after testing.
-        this.DBSession.close();
+        return this.DBSession.close();
     }
 }
