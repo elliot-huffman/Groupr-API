@@ -7,8 +7,17 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "Run App",
             "program": "${workspaceFolder}/build/app.js",
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Run Test",
+            "program": "${workspaceFolder}/build/test.js",
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ]

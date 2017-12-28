@@ -1,5 +1,5 @@
 import * as restify from "restify";
-import * as Database from "./Database";
+import * as MongoInterface from "./Database";
 
 const APIServer = restify.createServer({
   name: 'Three Horsemen API Server',
