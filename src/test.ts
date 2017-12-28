@@ -14,7 +14,7 @@ var testDBSettings = {
     password: "blank",
     databaseName: "categories",
     collection: "indoors",
-    query: {},
+    query: { "_id": "5a43e0e252286015bc301ea5" },
 }
 
 // Build the connection URL.
@@ -24,7 +24,7 @@ var connectionURL = testDBSettings.url + ":" + testDBSettings.port;
 var database = new MongoInterface.Database(connectionURL, testDBSettings.databaseName, testDBSettings.userName, testDBSettings.password);
 
 // Read the DB
-var results = database.read(testDBSettings.collection, {});
+var results = database.read(testDBSettings.collection, testDBSettings.query);
 
 results.then((results) => {
     console.log(results);

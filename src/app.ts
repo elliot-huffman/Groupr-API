@@ -9,6 +9,7 @@ const APIServer = restify.createServer({
 const ServerConfig = {
   APIPort: 8080,
   APIListenOn: "localhost",
+  DomainName: "example.com",
 }
 
 // Set up server plugins and allow CORS
