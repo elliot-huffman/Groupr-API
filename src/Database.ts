@@ -52,7 +52,7 @@ export class Database {
         // If the query has an "_id" field, check if it is a string and if it is, convert it to an ObjectID.
         if (query._id !== undefined && typeof query._id === "string") {
             // Convert the _ID to a mongoDB ObjectID type for the query.
-            query._id = new mongoDB.ObjectID(query._id);
+            query._id = this.stringToObjectID(query._id);
         }
         // Create a promise execute the request asynchronously.
         return new Promise((resolve, reject) => {
@@ -105,7 +105,7 @@ export class Database {
         // Check if the _id is a string and if it is, convert it to an ObjectID.
         if (typeof _id === "string") {
             // Convert the _ID to a mongoDB ObjectID type for the query.
-            _id = new mongoDB.ObjectID(_id);
+            _id = this.stringToObjectID(_id);
         }
 
         // Create a promise execute the request asynchronously.
@@ -137,7 +137,7 @@ export class Database {
         // Check if the _id is a string and if it is, convert it to an ObjectID.
         if (typeof _id === "string") {
             // Convert the _ID to a mongoDB ObjectID type for the query.
-            _id = new mongoDB.ObjectID(_id);
+            _id = this.stringToObjectID(_id);
         }
 
         // Create a promise execute the request asynchronously.
@@ -165,5 +165,10 @@ export class Database {
         // This is generally not needed and for proper connection and resource usage, this should not be invoked as the interface reuses connections.
         // This is just mostly here for the test script to exit after testing.
         return this.DBSession.close();
+    }
+
+    // Convert a string into an ObjectID for DB operations.
+    stringToObjectID(IDString: string): mongoDB.ObjectID {
+        return new mongoDB.ObjectID(IDString);
     }
 }
