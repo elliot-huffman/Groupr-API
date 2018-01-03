@@ -28,9 +28,9 @@
   },
   "devDependencies": {
     "@types/mongodb": "^2.2.18",
-    "@types/node": "^8.5.2",
+    "@types/node": "^8.5.3",
     "@types/passport": "^0.4.2",
-    "@types/restify": "^5.0.6",
+    "@types/restify": "^5.0.7",
     "tslint": "^5.8.0",
     "typescript": "^2.6.2"
   }
