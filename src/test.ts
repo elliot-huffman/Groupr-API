@@ -17,7 +17,7 @@ var testDBSettings = {
     // Password for DB authentication.
     password: "blank",
     // Name of the database to open after connected to the DB server.
-    databaseName: "categories",
+    databaseName: "test",
     // Name the collection to be used.
     collection: "indoors",
     // Blank find all query, equivalent to "*" in standard regex.

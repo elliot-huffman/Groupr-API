@@ -1,16 +1,37 @@
 import * as restify from "restify";
 import * as MongoInterface from "./Database";
 
-const APIServer = restify.createServer({
-  name: 'Three Horsemen API Server',
-  version: '0.0.1',
-});
+// Configure the settings for connecting to the categories database.
+const catDBConfig = {
+  // URL needed for connecting to the DB, starts with "mongodb://" and then has standard domain notation, e.g. "elliot-labs.com"
+  url: "mongodb://localhost",
+  // Port number that the DB runs off of.
+  port: 27017,
+  // Username for DB authentication.
+  userName: "blank",
+  // Password for DB authentication.
+  password: "blank",
+  // Name of the database to open after connected to the DB server.
+  databaseName: "DataStorage",
+  // Hard code the collection
+  collection: "Categories",
+}
 
+//Configure the API HTTP REST server
 const ServerConfig = {
   APIPort: 8080,
   APIListenOn: "localhost",
   DomainName: "example.com",
 }
+
+// Create the HTTP REST API server
+const APIServer = restify.createServer({
+  name: 'Three Horsemen API Server',
+  version: '0.0.1',
+});
+
+// Connect to the MongoDB Server
+const categoriesDatabase = new MongoInterface.Database(catDBConfig.url, catDBConfig.databaseName, catDBConfig.userName, catDBConfig.password);
 
 // Set up server plugins and allow CORS
 APIServer.use(restify.plugins.acceptParser(APIServer.acceptable));
@@ -24,23 +45,23 @@ APIServer.use(
   }
 );
 
-// Create a new get URL on the server
-APIServer.get('/', (req, res, next) => {
-  console.log(next);
-  res.send({ hello: 'world' });
-  return next();
+// List all categories on the server
+APIServer.get('/categories/', (req, res, next) => {
+  const dbReadResults = categoriesDatabase.read(catDBConfig.collection, {});
+  dbReadResults.then((readResults) => {
+    res.send(readResults);
+    return next();
+  });
 });
 
-// Create a new get URL on the server
-APIServer.get('/activities/:categories', (req, res, next) => {
-  res.send(req.params);
-  return next();
-});
-
-// Create a new get URL on the server
-APIServer.get('/activities/:categories/:activity', (req, res, next) => {
-  res.send(req.params);
-  return next();
+// Add a category to the server
+APIServer.post('/categories/', (req, res, next) => {
+  const dbWriteResults = categoriesDatabase.write(catDBConfig.collection,[req.body]);
+  dbWriteResults.then((results) => {
+    res.send(results);
+    console.log("Created new category!");
+    return next();
+  });  
 });
 
 // Start API APIServer.
