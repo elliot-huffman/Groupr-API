@@ -64,6 +64,15 @@ APIServer.post('/categories/', (req, res, next) => {
   });  
 });
 
+// Delete a category.
+APIServer.post('/categories/delete/', (req, res, next) => {
+  const dbDeleteResults = categoriesDatabase.delete(catDBConfig.collection, req.body.id);
+  dbDeleteResults.then((results) => {
+    res.send(results);
+    return next();
+  });
+});
+
 // Start API APIServer.
 APIServer.listen(ServerConfig.APIPort, ServerConfig.APIListenOn);
 console.log("Server running...")
