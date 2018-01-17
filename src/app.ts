@@ -73,6 +73,16 @@ APIServer.post('/categories/delete/', (req, res, next) => {
   });
 });
 
+// Update a category.
+APIServer.post('/categories/update/', (req, res, next) => {
+  const dbUpdateResults = categoriesDatabase.update(catDBConfig.collection, req.body.id, req.body.updateOperation);
+  dbUpdateResults.then((results) => {
+    res.send(results);
+    console.log("Updated a category!");
+    return next();
+  });  
+});
+
 // Start API APIServer.
 APIServer.listen(ServerConfig.APIPort, ServerConfig.APIListenOn);
 console.log("Server running...")
