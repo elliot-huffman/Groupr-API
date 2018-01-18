@@ -1,5 +1,8 @@
-import * as restify from "restify";
+import * as Express from "express";
 import * as MongoInterface from "./Database";
+import * as Passport from "passport";
+import * as BodyParser from "body-parser";
+import {Strategy as LocalStrategy} from "passport-local";
 
 // Configure the settings for connecting to the categories database.
 const catDBConfig = {
@@ -25,64 +28,72 @@ const ServerConfig = {
 }
 
 // Create the HTTP REST API server
-const APIServer = restify.createServer({
-  name: 'Three Horsemen API Server',
-  version: '0.0.1',
-});
+const APIServer = Express();
 
 // Connect to the MongoDB Server
 const categoriesDatabase = new MongoInterface.Database(catDBConfig.url, catDBConfig.databaseName, catDBConfig.userName, catDBConfig.password);
 
+// Accept JSON encoded bodies.
+APIServer.use(BodyParser.json());
+// Accept url encoded bodies.
+APIServer.use(BodyParser.urlencoded({ extended: true }));
 // Set up server plugins and allow CORS
-APIServer.use(restify.plugins.acceptParser(APIServer.acceptable));
-APIServer.use(restify.plugins.queryParser());
-APIServer.use(restify.plugins.bodyParser());
+// Additionally allow delete and patch methods.
 APIServer.use(
-  function crossOrigin(req,res,next){
+  function crossOrigin(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    res.header('Access-Control-Allow-Methods', 'GET,POST,DELETE,PATCH');
     return next();
   }
 );
 
-// List all categories on the server
-APIServer.get('/categories/', (req, res, next) => {
-  const dbReadResults = categoriesDatabase.read(catDBConfig.collection, {});
-  dbReadResults.then((readResults) => {
-    res.send(readResults);
-    return next();
+// Initializes the authentication middleware.
+APIServer.use(Passport.initialize());
+APIServer.use(Passport.session());
+
+// Configure the local strategy for use.
+// Passport.use(new LocalStrategy(More to come soon!));
+
+// Set the base route for the database operations.
+APIServer.route('/categories/')
+  // List all of the categories in the database.
+  .get((req, res) => {
+    const dbReadResults = categoriesDatabase.read(catDBConfig.collection, {});
+    dbReadResults.then((readResults) => {
+      res.send(readResults);
+      console.log("List all categories!");
+    });
+  })
+
+  // Add a new category to the database.
+  .post((req, res) => {
+    const dbWriteResults = categoriesDatabase.write(catDBConfig.collection, [req.body]);
+    dbWriteResults.then((results) => {
+      res.send(results);
+      console.log("Created new category!");
+    });
+  })
+
+  // Delete a category from the DB.
+  .delete((req, res) => {
+    const dbDeleteResults = categoriesDatabase.delete(catDBConfig.collection, req.body.id);
+    dbDeleteResults.then((results) => {
+      res.send(results);
+      console.log("Deleted a category!");
+    });
+  })
+
+  // Update a category in the database.
+  .patch((req, res, next) => {
+    const dbUpdateResults = categoriesDatabase.update(catDBConfig.collection, req.body.id, req.body.updateOperation);
+    dbUpdateResults.then((results) => {
+      res.send(results);
+      console.log("Updated a category!");
+    });
   });
-});
-
-// Add a category to the server
-APIServer.post('/categories/', (req, res, next) => {
-  const dbWriteResults = categoriesDatabase.write(catDBConfig.collection,[req.body]);
-  dbWriteResults.then((results) => {
-    res.send(results);
-    console.log("Created new category!");
-    return next();
-  });  
-});
-
-// Delete a category.
-APIServer.post('/categories/delete/', (req, res, next) => {
-  const dbDeleteResults = categoriesDatabase.delete(catDBConfig.collection, req.body.id);
-  dbDeleteResults.then((results) => {
-    res.send(results);
-    return next();
-  });
-});
-
-// Update a category.
-APIServer.post('/categories/update/', (req, res, next) => {
-  const dbUpdateResults = categoriesDatabase.update(catDBConfig.collection, req.body.id, req.body.updateOperation);
-  dbUpdateResults.then((results) => {
-    res.send(results);
-    console.log("Updated a category!");
-    return next();
-  });  
-});
 
 // Start API APIServer.
-APIServer.listen(ServerConfig.APIPort, ServerConfig.APIListenOn);
-console.log("Server running...")
+APIServer.listen(ServerConfig.APIPort, () => {
+  console.log("Server running...");
+});

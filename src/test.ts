@@ -1,5 +1,4 @@
 // Import required modules
-import * as restify from "restify";
 import * as MongoInterface from "./Database";
 
 //
