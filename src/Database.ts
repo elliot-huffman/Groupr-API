@@ -1,174 +1,139 @@
-// WARNING, DATABASE OPERATIONS ARE ASYNCHRONOUS!!!
-// Returns promises!
-// Import the MongoDB driver
-import * as mongoDB from "mongodb";
+import * as Mongoose from "mongoose";
 
-// Define the default structure for database queries.
-// The _ID parameter si optional but when it is used, it will be a string.
-interface queryStructure {
-    _id?: string|mongoDB.ObjectID;
-}
+// Simplify the ObjectID object.
+const ObjectIDType = Mongoose.Schema.Types.ObjectId;
+export const ObjectID = Mongoose.Types.ObjectId;
 
-// Create the Database class.
+// Define the user data structure
+const UserSchema = new Mongoose.Schema({
+    eMail: {type: String, unique: true, required: true},
+    Password: {type: String, required: true},
+    DisplayName: String,
+    EventsAttended: Number,
+    Ratings: [{
+        UserID: ObjectIDType,
+        Rating: Number,
+        Comment: String,
+    }],
+    IsPremium: Boolean,
+});
+
+// Define the category data structure
+const CategorySchema = new Mongoose.Schema({
+    Name: String,
+    Parent: Boolean,
+    Locations: [ObjectIDType],
+    Children: [ObjectIDType],
+});
+
+// Define the location data structure
+const LocationSchema = new Mongoose.Schema({
+    Name: String,
+    Location: String,
+    Visits: Number,
+    Ratings: [{
+        UserID: ObjectIDType,
+        Rating: Number,
+        Comment: String,
+    }],
+    IsPremium: Boolean,
+});
+
+// Compile the schemas into models and export them.
+const UserModel = Mongoose.model('User', UserSchema);
+const CategoryModel = Mongoose.model('Category', CategorySchema);
+const LocationModel = Mongoose.model('Location', LocationSchema);
+
 export class Database {
     // Define the class properties.
-    URL: string;
-    DB: string;
-    User: string;
-    Password: string;
-    ConnectionSession: Promise<mongoDB.Db>;
-    DBSession: mongoDB.Db;
-    DBInstance: mongoDB.Db;
-    BoundConnectCallback: Function;
-
+    Host: string;
+    Database: string;
+    Port: number|string|undefined;
+    User: string|undefined;
+    Password: string|undefined;
 
     // Set the initial settings when the class is instantiated.
-    constructor(URL: string, DB: string, UserName: string, Password: string) {
+    constructor(HostName: string, DB: string, PortNumber?: number, UserName?: string, PWD?: string) {
         // Gets the parameters and sets the class properties with them.
-        var self = this;
-        this.URL = URL;
-        this.DB = DB;
+        this.Host = HostName;
+        this.Database = DB;
+        this.Port = PortNumber
         this.User = UserName;
-        this.Password = Password;
+        this.Password = PWD;
 
-        // Since the connect method returns a promise, collect that promise and make it available.
-        // If the connection fails, throw the error.
-        this.ConnectionSession = mongoDB.MongoClient.connect(this.URL);
-        this.ConnectionSession.then((SuccessfulResults) => {
-                self.DBSession = SuccessfulResults;
-                self.DBInstance = SuccessfulResults.db(this.DB);
-            });
-        this.ConnectionSession.catch((errorResult) => {
-            throw errorResult;
-        });
-    }
+        // Set the base connection protocol.
+        let connectionURL = "mongodb://";
 
-    // Read the database.
-    // If using an ID, pass the id as a string, it will be auto converted for you.
-    read(collection: string, query: queryStructure): Promise<Array<any>> {
-        // allow "this" to be accessible from within anonymous functions.
-        var self = this;
+        // Set the port URL syntax if the user specifies the port.
+        this.Port = (typeof this.Port === "undefined") ? this.Port = "": this.Port = ":" + this.Port;
 
-        // If the query has an "_id" field, check if it is a string and if it is, convert it to an ObjectID.
-        if (query._id !== undefined && typeof query._id === "string") {
-            // Convert the _ID to a mongoDB ObjectID type for the query.
-            query._id = this.stringToObjectID(query._id);
+        // Add the username, password, host, port and database items to the base connection url.
+        if (typeof this.User === "undefined" || typeof this.Password === "undefined") {
+            connectionURL = connectionURL +  this.Host + this.Port + "/" + this.Database;
+        } else {
+            connectionURL = connectionURL + this.User + ":" + this.Password + "@" + this.Host + this.Port + "/" + this.Database;
         }
-        // Create a promise execute the request asynchronously.
+        
+        // Connect to the database.
+        Mongoose.connect(connectionURL);
+
+        // Error check the connection.
+        Mongoose.connection.on('error', console.error.bind(console, 'connection error:'));
+    }
+
+    // Creates a new user
+    newUser(email: string, password: string): Promise<Mongoose.Document> {
         return new Promise((resolve, reject) => {
-            // Only execute after the MongoDB interface has a connection to the server.
-            self.ConnectionSession.then((results) => {
-
-                // Initialize a collection instance for manipulation.
-                const collectionInstance = self.DBInstance.collection(collection);
-
-                // Run the query on the collection to find the documents specified in the query.
-                collectionInstance.find(query).toArray(function(error, searchResults) {
-                    // If there is an error, return that error to the promise and stop the execution.
-                    if (error) reject(error);
-                    // If there is no error, return the results of the query to the promise.
-                    resolve(searchResults);
+            if (Mongoose.connection.readyState === 1 || Mongoose.connection.readyState === 2) {
+                Mongoose.connection.once('open', function() {
+                    const Data = {
+                        eMail: email,
+                        Password: password,
+                    }
+                    const newUser = new UserModel(Data);
+                    newUser.save((error, results) => {
+                        if (error) reject(error);
+                        resolve(results);
+                    });
                 });
-            });
+            } else {
+                reject("Database not connected or connecting!");
+            }
         });
     }
 
-    // Write document(s) to a collection in the database.
-    write(collection: string, documentArray: Array<Object>): Promise<mongoDB.InsertWriteOpResult> {
-        // allow "this" to be accessible from within anonymous functions.
-        var self = this;
-
-        // Create a promise execute the request asynchronously.
+    // Updates a specified user (provide an object ID).
+    updateUser(email: string, Data: {
+        eMail?: String,
+        DisplayName?: String,
+        Password?: String,
+        EventsAttended?: Number,
+    }): Promise<Mongoose.Document> {
         return new Promise((resolve, reject) => {
-            // Only execute after the MongoDB interface has a connection to the server.
-            self.ConnectionSession.then((results) => {
-
-                // Initialize a collection instance for manipulation.
-                const collectionInstance = self.DBInstance.collection(collection);
-
-                // Insert the document array into the collection.
-                collectionInstance.insertMany(documentArray, (error, creationResults) => {
-                    // If there is an error, return that error to the promise and stop the execution.
-                    if (error) reject(error);
-                    // If there is no error, return the results of the document creation to the promise.
-                    resolve(creationResults);
-                }); 
-            });
+            if (Mongoose.connection.readyState === 1 || Mongoose.connection.readyState === 2) {
+                if (email === undefined) {
+                    reject("Document ID is required!");
+                } else {
+                    const query = { eMail: email }
+                    UserModel.findOne(query, 'eMail', (error, userModel: Mongoose.Document) => {
+                        if (error) reject(error);
+                        userModel.set(Data);
+                        userModel.save((error, updateResults) => {
+                            if (error) reject(error);
+                            resolve(updateResults);
+                        });
+                    });
+                }
+            } else {
+                reject("Database not connected or connecting!");
+            }
         });
     }
 
-    // Delete a document by the ID of the document.
-    delete(collection: string, _id: string|mongoDB.ObjectID): Promise<mongoDB.DeleteWriteOpResultObject> {
-        // allow "this" to be accessible from within anonymous functions.
-        var self = this;
-
-        // Check if the _id is a string and if it is, convert it to an ObjectID.
-        if (typeof _id === "string") {
-            // Convert the _ID to a mongoDB ObjectID type for the query.
-            _id = this.stringToObjectID(_id);
-        }
-
-        // Create a promise execute the request asynchronously.
-        return new Promise((resolve, reject) => {
-            // Only execute after the MongoDB interface has a connection to the server.
-            self.ConnectionSession.then((results) => {
-
-                // Initialize a collection instance for manipulation.
-                const collectionInstance = self.DBInstance.collection(collection);
-
-                // Run the delete operation on the collection for the document specified by its ID.
-                collectionInstance.deleteOne({"_id": _id}, (error, deleteResults) => {
-                    // If there is an error, return that error to the promise and stop the execution.
-                    if (error) reject(error);
-                    // If there is no error, return the results of the deletion to the promise.
-                    resolve(deleteResults);
-                });
-            });
-        });
-    }
-
-    // Update a document
-    // Update operation definitions:
-    // https://docs.mongodb.com/manual/reference/operator/update/
-    update(collection: string, _id: string|mongoDB.ObjectID, updateOperation: Object): Promise<mongoDB.UpdateWriteOpResult> {
-        // allow "this" to be accessible from within anonymous functions.
-        var self = this;
-
-        // Check if the _id is a string and if it is, convert it to an ObjectID.
-        if (typeof _id === "string") {
-            // Convert the _ID to a mongoDB ObjectID type for the query.
-            _id = this.stringToObjectID(_id);
-        }
-
-        // Create a promise execute the request asynchronously.
-        return new Promise((resolve, reject) => {
-            // Only execute after the MongoDB interface has a connection to the server.
-            self.ConnectionSession.then((results) => {
-
-                // Initialize a collection instance for manipulation.
-                const collectionInstance = self.DBInstance.collection(collection);
-
-                // Run the update operation on the collection to find the document specified in the query and then run the specified operation.
-                collectionInstance.updateOne({"_id": _id}, updateOperation, (error, updateResults) => {
-                    // If there is an error, return that error to the promise and stop the execution.
-                    if (error) reject(error);
-                    // If there is no error, return the results of the update to the promise.
-                    resolve(updateResults);
-                });
-            });
-        });
-    }
-
-    // Close Session
+    // Closes the database connection.
     close(): Promise<void> {
-        // Closes the database connection.
         // This is generally not needed and for proper connection and resource usage, this should not be invoked as the interface reuses connections.
         // This is just mostly here for the test script to exit after testing.
-        return this.DBSession.close();
-    }
-
-    // Convert a string into an ObjectID for DB operations.
-    stringToObjectID(IDString: string): mongoDB.ObjectID {
-        return new mongoDB.ObjectID(IDString);
+        return Mongoose.connection.close()
     }
 }
