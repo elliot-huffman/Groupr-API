@@ -20,7 +20,7 @@ var testDBSettings = {
     Password: "blank",
     // definitions of new documents to create.
     NewUser: {
-        DisplayName: "Elliot",
+        DisplayName: "Elliot Huffman",
         eMail: "eHuffman@elliot-labs.com",
         Password: "qwerty",
         EventsAttended: "123",
@@ -49,11 +49,6 @@ const UpdateUserResults = new Promise((resolve, reject) => {
             IsPremium: testDBSettings.NewUser.IsPremium,
         }
         const updateResults = database.updateUser(testDBSettings.NewUser.eMail, Data);
-        updateResults.then((results) => {
-            resolve(results);
-        }).catch((error) => {
-            reject(error);
-        });
     });
 });
 

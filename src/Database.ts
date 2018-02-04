@@ -86,15 +86,23 @@ export class Database {
         return new Promise((resolve, reject) => {
             if (Mongoose.connection.readyState === 1 || Mongoose.connection.readyState === 2) {
                 Mongoose.connection.once('open', function() {
-                    const Data = {
-                        eMail: email,
-                        Password: password,
-                    }
-                    const newUser = new UserModel(Data);
-                    newUser.save((error, results) => {
+                    UserModel.findOne({eMail: email}, 'eMail', function (error, results) {
                         if (error) reject(error);
-                        resolve(results);
+                        if (results === null) {
+                            const Data = {
+                                eMail: email,
+                                Password: password,
+                            }
+                            const newUser = new UserModel(Data);
+                            newUser.save((error, results) => {
+                                if (error) reject(error);
+                                resolve(results);
+                            });
+                        } else {
+                            reject("eMail already exists!");
+                        }
                     });
+                    
                 });
             } else {
                 reject("Database not connected or connecting!");
