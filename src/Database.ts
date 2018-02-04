@@ -51,6 +51,7 @@ export class Database {
     Port: number|string|undefined;
     User: string|undefined;
     Password: string|undefined;
+    Session: Promise<typeof Mongoose>;
 
     // Set the initial settings when the class is instantiated.
     constructor(HostName: string, DB: string, PortNumber?: number, UserName?: string, PWD?: string) {
@@ -75,7 +76,7 @@ export class Database {
         }
         
         // Connect to the database.
-        Mongoose.connect(connectionURL);
+        this.Session =  Mongoose.connect(connectionURL);
 
         // Error check the connection.
         Mongoose.connection.on('error', console.error.bind(console, 'connection error:'));
@@ -120,9 +121,9 @@ export class Database {
         return new Promise((resolve, reject) => {
             if (Mongoose.connection.readyState === 1 || Mongoose.connection.readyState === 2) {
                 if (email === undefined) {
-                    reject("Document ID is required!");
+                    reject("eMail is required!");
                 } else {
-                    const query = { eMail: email }
+                    const query = { eMail: email };
                     UserModel.findOne(query, 'eMail', (error, userModel: Mongoose.Document) => {
                         if (error) reject(error);
                         userModel.set(Data);
@@ -130,6 +131,25 @@ export class Database {
                             if (error) reject(error);
                             resolve(updateResults);
                         });
+                    });
+                }
+            } else {
+                reject("Database not connected or connecting!");
+            }
+        });
+    }
+
+    // Returns a specific user by the eMail unique identifier.
+    getUser(email: string): Promise<Mongoose.Document> {
+        return new Promise((resolve, reject) => {
+            if (Mongoose.connection.readyState === 1 || Mongoose.connection.readyState === 2) {
+                if (email === undefined) {
+                    reject("eMail is required!");
+                } else {
+                    const query = { eMail: email };
+                    UserModel.findOne(query, 'eMail', (error, user: Mongoose.Document) => {
+                        if (user === null) reject("No user found!");
+                        resolve(user);
                     });
                 }
             } else {

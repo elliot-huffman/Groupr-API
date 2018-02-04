@@ -1,63 +1,45 @@
 // Import required modules
 import * as MongoInterface from "./Database";
 import { ObjectID } from "./Database";
+import { HashPassword } from "./Security"
+import { TestConfig } from "./Config";
 
 //
 // Database Tests
 //
 
-// Database connection settings.
-var testDBSettings = {
-    // URL needed for connecting to the DB, starts with "mongodb://" and then has standard domain notation, e.g. "elliot-labs.com"
-    Host: "localhost",
-    // Name of the database to open after connected to the DB server.
-    DatabaseName: "test",
-    // Port number that the DB runs off of.
-    Port: 27017,
-    // Username for DB authentication.
-    UserName: "blank",
-    // Password for DB authentication.
-    Password: "blank",
-    // definitions of new documents to create.
-    NewUser: {
-        DisplayName: "Elliot Huffman",
-        eMail: "eHuffman@elliot-labs.com",
-        Password: "qwerty",
-        EventsAttended: "123",
-        Ratings: [],
-        IsPremium: true,
-    },
-}
-
-// process.on('unhandledRejection', (reason, p) => {
-//     console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
-//     // application specific logging, throwing an error, or other logic here
-// });
-
-// Create container for collecting the output of the database test operations.
-var testDBResults = <any>{};
-
 // Open a database connection.
-var database = new MongoInterface.Database(testDBSettings.Host,testDBSettings.DatabaseName, testDBSettings.Port);
+var Database = new MongoInterface.Database(TestConfig.Host,TestConfig.DatabaseName, TestConfig.Port);
 
-const NewUserResults = database.newUser(testDBSettings.NewUser.eMail,testDBSettings.NewUser.Password);
+// Create a new user.
+const NewUserResults = Database.newUser(TestConfig.NewUser.eMail, HashPassword(TestConfig.NewUser.Password));
 
+// Update an existing user after the new user creation has completed.
 const UpdateUserResults = new Promise((resolve, reject) => {
+    // Execute after the new user has been created.
     NewUserResults.then((NewResults) => {
+        // Build the data structure that the user profile should have.
         const Data = {
-            DisplayName: testDBSettings.NewUser.DisplayName,
-            IsPremium: testDBSettings.NewUser.IsPremium,
+            DisplayName: TestConfig.NewUser.DisplayName,
+            IsPremium: TestConfig.NewUser.IsPremium,
         }
-        const updateResults = database.updateUser(testDBSettings.NewUser.eMail, Data);
+        // Start the update operation.
+        const updateResults = Database.updateUser(TestConfig.NewUser.eMail, Data);
+        // Gather the results (or error) and report them.
+        updateResults.then((results) =>{
+            resolve(results);
+        }).catch((error) => {
+            reject(error);
+        });
     });
 });
 
 
-// Closes the database connection.
+// Closes the database connection and prints the results.
 Promise.all([NewUserResults, UpdateUserResults]).then((results) => {
     console.log(results);
-    database.close();
+    Database.close();
 }).catch((error) => {
     console.log(error);
-    database.close();
+    Database.close();
 });
