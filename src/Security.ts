@@ -10,3 +10,11 @@ export function HashPassword(Password: string) {
     // Return the results of the hash operation in hexadecimal (standard hash).
     return hash.digest('hex');
 }
+
+export function CompareHash(toHash: string, existingHash: string) {
+    if (HashPassword(toHash) === existingHash) {
+        return true;
+    } else {
+        return false;
+    }
+}
