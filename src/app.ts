@@ -31,6 +31,38 @@ APIServer.use(function crossOrigin(req, res, next) {
   return next();
 });
 
+Passport.serializeUser(function(user: any, done) {
+  done(null, user._id);
+});
+ 
+Passport.deserializeUser(function(id, done) {
+  MongoInterface.UserModel.findById(id, function(err, user: any) {
+    done(err, user);
+  });
+});
+
+Passport.use('login', new LocalStrategy({passReqToCallback : true}, function(req, email, password, done) { 
+  // check in mongo if a user with username exists or not
+  MongoInterface.UserModel.findOne({ eMail:  email }, function(err, user) {
+      // In case of any error, return using the done method
+      if (err) return done(err);
+      // Username does not exist, log error & redirect back
+      if (!user) {
+        console.log('User Not Found with email address ' + email);
+        return done(null, false, req.flash('message', 'User Not found.'));                 
+      }
+      // User exists but wrong password, log the error 
+      if (!SecurityInterface.CompareHash(user.get('Password'), password)){
+        console.log('Invalid Password');
+        return done(null, false, req.flash('message', 'Invalid Password'));
+      }
+      // User and password both match, return user from 
+      // done method which will be treated like success
+      return done(null, user);
+    }
+  );
+}));
+
 // Start API APIServer with the port specified in the config.
 APIServer.listen(AppConfig.APIServer.Port, () => {
   console.log("Server running...");
