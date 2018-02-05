@@ -40,7 +40,7 @@ const LocationSchema = new Mongoose.Schema({
 });
 
 // Compile the schemas into models and export them.
-const UserModel = Mongoose.model('User', UserSchema);
+export const UserModel = Mongoose.model('User', UserSchema);
 const CategoryModel = Mongoose.model('Category', CategorySchema);
 const LocationModel = Mongoose.model('Location', LocationSchema);
 
