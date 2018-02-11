@@ -74,7 +74,7 @@ export class Database {
         } else {
             connectionURL = connectionURL + this.User + ":" + this.Password + "@" + this.Host + this.Port + "/" + this.Database;
         }
-        
+
         // Connect to the database.
         this.Session =  Mongoose.connect(connectionURL);
 

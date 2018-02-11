@@ -19,7 +19,7 @@ export const AppConfig = {
         // Password for DB authentication.
         Password: "blank",
     },
-  
+
     //Configure the API HTTP REST server
     APIServer: {
         Port: 8080,
