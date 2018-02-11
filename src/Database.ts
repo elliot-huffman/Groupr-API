@@ -82,34 +82,55 @@ export class Database {
         Mongoose.connection.on('error', console.error.bind(console, 'connection error:'));
     }
 
-    // Creates a new user
-    newUser(email: string, password: string): Promise<Mongoose.Document> {
+    // Check the connection status and wait for connection to finish if still connecting.
+    waitForConnection(): Promise<void> {
+        // Create a new promise as this is most definitively an async function.
         return new Promise((resolve, reject) => {
+            // only proceed if the connection is connected or connecting.
             if (Mongoose.connection.readyState === 1 || Mongoose.connection.readyState === 2) {
-                Mongoose.connection.once('open', function() {
-                    UserModel.findOne({eMail: email}, 'eMail', function (error, results) {
-                        if (error) reject(error);
-                        if (results === null) {
-                            const Data = {
-                                eMail: email,
-                                Password: password,
-                            }
-                            const newUser = new UserModel(Data);
-                            newUser.save((error, results) => {
-                                if (error) reject(error);
-                                resolve(results);
-                            });
-                        } else {
-                            reject("eMail already exists!");
-                        }
+                // If the DB is still connecting, wait for the connection to complete.
+                if (Mongoose.connection.readyState === 2) {
+                    // Once the connection is complete, execute the specified code.
+                    Mongoose.connection.once('open', function() {
+                        // Resolve the promise!
+                        resolve();
                     });
-                    
-                });
+                }
+                // If the database is already connected, proceed as follows:
+                if (Mongoose.connection.readyState === 1) {
+                    // Resolve the promise.
+                    resolve();
+                }
             } else {
-                reject("Database not connected or connecting!");
+                // Reject the promise if we do not support the specific connection mode.
+                reject("Not connecting or connected!");
             }
         });
     }
+
+    // Creates a new user
+    newUser(email: string, password: string): Promise<Mongoose.Document> {
+        return new Promise((resolve, reject) => {
+            this.waitForConnection().then(() => {
+                UserModel.findOne({eMail: email}, 'eMail', function (error, results) {
+                    if (error) reject(error);
+                    if (results === null) {
+                        const Data = {
+                            eMail: email,
+                            Password: password,
+                        }
+                        const newUser = new UserModel(Data);
+                        newUser.save((error, results) => {
+                            if (error) reject(error);
+                            resolve(results);
+                        });
+                    } else {
+                        reject("eMail already exists!");
+                    }
+                });
+            });
+        });
+    };
 
     // Updates a specified user (provide an object ID).
     updateUser(email: string, Data: {
@@ -119,7 +140,7 @@ export class Database {
         EventsAttended?: Number,
     }): Promise<Mongoose.Document> {
         return new Promise((resolve, reject) => {
-            if (Mongoose.connection.readyState === 1 || Mongoose.connection.readyState === 2) {
+            this.waitForConnection().then(() => {
                 if (email === undefined) {
                     reject("eMail is required!");
                 } else {
@@ -133,16 +154,14 @@ export class Database {
                         });
                     });
                 }
-            } else {
-                reject("Database not connected or connecting!");
-            }
+            });
         });
     }
 
     // Returns a specific user by the eMail unique identifier.
     getUser(email: string): Promise<Mongoose.Document> {
         return new Promise((resolve, reject) => {
-            if (Mongoose.connection.readyState === 1 || Mongoose.connection.readyState === 2) {
+            this.waitForConnection().then(() => {
                 if (email === undefined) {
                     reject("eMail is required!");
                 } else {
@@ -152,9 +171,7 @@ export class Database {
                         resolve(user);
                     });
                 }
-            } else {
-                reject("Database not connected or connecting!");
-            }
+            });
         });
     }
 
