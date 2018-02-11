@@ -11,7 +11,8 @@
             "program": "${workspaceFolder}/build/app.js",
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
-            ]
+            ],
+            "preLaunchTask": "Build TypeScript",
         },
         {
             "type": "node",
@@ -20,7 +21,8 @@
             "program": "${workspaceFolder}/build/test.js",
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
-            ]
+            ],
+            "preLaunchTask": "Build TypeScript",
         }
     ]
 }
