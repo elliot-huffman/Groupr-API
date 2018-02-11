@@ -1,5 +1,11 @@
 // Configures for the main app script.
 export const AppConfig = {
+    // Set where the user should end up if they are not logged in when they try to access a secured page.
+    UnauthenticatedRedirectPage: '/login',
+    // Set where the user is redirected to when they log into the app.
+    LoginRedirect: 'https://elliot-labs.com',
+    // Set the url the user is redirected to upon failure.
+    LoginFailureRedirect: 'https://google.com',
     // Configure the settings for connecting to the categories database.
     Database: {
         // URL needed for connecting to the DB, starts with "mongodb://" and then has standard domain notation, e.g. "elliot-labs.com"
@@ -23,7 +29,6 @@ export const AppConfig = {
 
     // This is a super secret key, it cannot leak without dire consequences.
     SessionConfig: {
-        name: 'session',
         secret: "AgH!lWgr~=2|+B3,+MW?*Qg9)^g^mK{^+]8x<^N/5M>=R!ai(xYu2-lhp{f>q0+?",
     },
 }
