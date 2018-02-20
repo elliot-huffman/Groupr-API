@@ -8,7 +8,9 @@ export const ObjectID = Mongoose.Types.ObjectId;
 const UserSchema = new Mongoose.Schema({
     eMail: {type: String, unique: true, required: true},
     Password: {type: String, required: true},
-    DisplayName: String,
+    Age: Number,
+    Gender: String,
+    FirstName: String,
     EventsAttended: Number,
     Ratings: [{
         UserID: ObjectIDType,
