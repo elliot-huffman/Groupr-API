@@ -161,18 +161,41 @@ export class Database {
     }
 
     // Returns a specific user by the eMail unique identifier.
-    getUser(email: string): Promise<Mongoose.Document> {
+    getUserByEmail(email: string): Promise<Mongoose.Document> {
+        // Create a new async operation.
         return new Promise((resolve, reject) => {
+            // Wait for the database connection to complete.
             this.waitForConnection().then(() => {
-                if (email === undefined) {
-                    reject("eMail is required!");
-                } else {
-                    const query = { eMail: email };
-                    UserModel.findOne(query, 'eMail', (error, user: Mongoose.Document) => {
-                        if (user === null) reject("No user found!");
-                        resolve(user);
-                    });
-                }
+                // Create the query 
+                const query = { eMail: email };
+                // run the query
+                UserModel.findOne(query, (error, user: Mongoose.Document) => {
+                    // If there are no results, reject the promise.
+                    if (user === null) reject("No user found!");
+                    // If there is an error, also reject the promise.
+                    if (error) reject(error);
+                    // Otherwise, resolve the promise.
+                    resolve(user);
+                });
+            });
+        });
+    }
+
+    // Find a user by the user's ID.
+    getUSerByID(ID: String): Promise<Mongoose.Document> {
+        // Create an async operation.
+        return new Promise((resolve, reject) => {
+            // Wait for the database connection to complete.
+            this.waitForConnection().then(() => {
+                // Query the user database for a user document with a specific ID.
+                UserModel.findById(ID, (error, user: Mongoose.Document) => {
+                    // If the user does not exist, reject the promise.
+                    if (user === null) reject("No user found!");
+                    // If there is an error, also reject the promise.
+                    if (error) reject(error);
+                    // Return the user document if successful.
+                    resolve(user);
+                })
             });
         });
     }
