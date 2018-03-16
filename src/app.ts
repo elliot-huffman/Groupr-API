@@ -34,10 +34,12 @@ APIServer.use(function crossOrigin(req, res, next) {
   return next();
 });
 
+// Extracts the user's ID from the document that is passed to it (mongoose document)
 Passport.serializeUser(function(user: any, done) {
   done(null, user._id);
 });
 
+// Returns a user document based upon the ID.
 Passport.deserializeUser(function(id, done) {
   MongoInterface.UserModel.findById(id, function(err, user: any) {
     done(err, user);
@@ -52,26 +54,20 @@ var isAuthenticated = function (req:Express.Request, res:Express.Response, next:
   res.redirect(AppConfig.UnauthenticatedRedirectPage);
 }
 
-Passport.use('login', new LocalStrategy({passReqToCallback : true}, function(req, email, password, done) {
-  // check in mongo if a user with username exists or not
-  MongoInterface.UserModel.findOne({ eMail:  email }, function(err, user) {
-      // In case of any error, return using the done method
-      if (err) return done(err);
-      // Username does not exist, log error & redirect back
-      if (!user) {
-        console.log('User Not Found with email address ' + email);
-        return done(null, false, req.flash('message', 'User Not found.'));
+Passport.use('login', new LocalStrategy(
+  {passReqToCallback : true,usernameField: 'email', passwordField: 'password'},
+  function(req, email, password, done) {
+    let userLookup = Database.getUserByEmail(email);
+    userLookup.then((results) => {
+      if (!SecurityInterface.CompareHash(password, results.get('Password'))) {
+        console.log("Invalid password!");
+        return done(null, false, req.flash('message', 'Invalid password!'));
       }
-      // User exists but wrong password, log the error
-      if (!SecurityInterface.CompareHash(user.get('Password'), password)){
-        console.log('Invalid Password');
-        return done(null, false, req.flash('message', 'Invalid Password'));
-      }
-      // User and password both match, return user from
-      // done method which will be treated like success
-      return done(null, user);
-    }
-  );
+      return done(null, results);
+    });
+    userLookup.catch((error) => {
+      return done(null, false, req.flash('message', 'User not found :('))
+    });
 }));
 
 /* Handle Logout */
@@ -82,15 +78,17 @@ APIServer.get('/logout', function(req, res) {
 
 /* GET Home Page */
 APIServer.get('/protected', isAuthenticated, function(req, res){
-  res.render('home', { user: req.user });
+  res.send("Protected data here...");
 });
 
 /* Handle Login POST */
-APIServer.post('/login', Passport.authenticate('login', {
-  successRedirect: 'https://google.com/',
-  failureRedirect: 'https://elliot-labs.com/',
-  failureFlash : true
-}));
+APIServer.post('/login', Passport.authenticate('login'),
+  function(req, res) {
+    // If this function gets called, authentication was successful.
+    // `req.user` contains the authenticated user.
+    res.send("Logged in successfully!");
+  }
+);
 
 /* Handle User Creation */
 APIServer.post('/NewUser', function (req, res) {
