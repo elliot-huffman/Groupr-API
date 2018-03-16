@@ -182,7 +182,7 @@ export class Database {
     }
 
     // Find a user by the user's ID.
-    getUSerByID(ID: String): Promise<Mongoose.Document> {
+    getUSerByID(ID: any): Promise<Mongoose.Document> {
         // Create an async operation.
         return new Promise((resolve, reject) => {
             // Wait for the database connection to complete.
