@@ -28,9 +28,10 @@ APIServer.use(Passport.session());
 // Set up server plugins and allow CORS.
 // Additionally allow delete and patch methods.
 APIServer.use(function crossOrigin(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Origin", "http://127.0.0.1");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
   res.header('Access-Control-Allow-Methods', 'GET,POST,DELETE,PATCH');
+  res.header('Access-Control-Allow-Credentials', 'true');
   return next();
 });
 
@@ -54,6 +55,7 @@ var isAuthenticated = function (req:Express.Request, res:Express.Response, next:
   res.redirect(AppConfig.UnauthenticatedRedirectPage);
 }
 
+// Define how users log in
 Passport.use('login', new LocalStrategy(
   {passReqToCallback : true,usernameField: 'email', passwordField: 'password'},
   function(req, email, password, done) {
@@ -73,7 +75,7 @@ Passport.use('login', new LocalStrategy(
 /* Handle Logout */
 APIServer.get('/logout', function(req, res) {
   req.logout();
-  res.redirect('/');
+  res.send("Logout Successful!");
 });
 
 /* GET Home Page */
@@ -91,7 +93,7 @@ APIServer.post('/login', Passport.authenticate('login'),
 );
 
 /* Handle User Creation */
-APIServer.post('/NewUser', function (req, res) {
+APIServer.post('/NewUser', function(req, res) {
   let results = Database.newUser(req.body.email, SecurityInterface.HashPassword(req.body.password));
   results.then((results) => {
     res.send(results);

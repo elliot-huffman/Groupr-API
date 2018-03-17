@@ -24,12 +24,18 @@ export const AppConfig = {
     APIServer: {
         Port: 8080,
         ListenOnIP: "localhost",
-        ListenOnDomain: "example.com",
+        ListenOnDomain: "127.0.0.1",
     },
 
     // This is a super secret key, it cannot leak without dire consequences.
     SessionConfig: {
         secret: "AgH!lWgr~=2|+B3,+MW?*Qg9)^g^mK{^+]8x<^N/5M>=R!ai(xYu2-lhp{f>q0+?",
+        cookie: {
+            httpOnly: false,
+            maxAge: 365 * 24 * 60 * 60 * 1000,
+        }
+        resave: false,
+        saveUninitialized: false,
     },
 }
 
