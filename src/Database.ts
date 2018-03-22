@@ -20,19 +20,22 @@ const UserSchema = new Mongoose.Schema({
     IsPremium: Boolean,
 });
 
-// Define the category data structure
+// Define the category data structure.
 const CategorySchema = new Mongoose.Schema({
     Name: String,
-    Parent: Boolean,
+    Users: [ObjectIDType],
+    GravityPoints: Number,
     Locations: [ObjectIDType],
     Children: [ObjectIDType],
 });
 
-// Define the location data structure
+// Define the location data structure.
 const LocationSchema = new Mongoose.Schema({
     Name: String,
     Location: String,
     Visits: Number,
+    QueueCount: Number,
+    CurrentQueues: [ObjectIDType],
     Ratings: [{
         UserID: ObjectIDType,
         Rating: Number,
@@ -41,10 +44,17 @@ const LocationSchema = new Mongoose.Schema({
     IsPremium: Boolean,
 });
 
+// Define the queue data structure.
+const QueueSchema = new Mongoose.Schema({
+    UserMaxCount: Number,
+    Users: [ObjectIDType],
+});
+
 // Compile the schemas into models and export them.
 export const UserModel = Mongoose.model('User', UserSchema);
 const CategoryModel = Mongoose.model('Category', CategorySchema);
 const LocationModel = Mongoose.model('Location', LocationSchema);
+const QueueModel = Mongoose.model('Queue', QueueSchema);
 
 export class Database {
     // Define the class properties.
