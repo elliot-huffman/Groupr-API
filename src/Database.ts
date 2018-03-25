@@ -1,8 +1,10 @@
 import * as Mongoose from "mongoose";
 
 // Simplify the ObjectID object.
+// Export type aliases for use in other script files.
 const ObjectIDType = Mongoose.Schema.Types.ObjectId;
-export const ObjectID = Mongoose.Types.ObjectId;
+export type ObjectID = Mongoose.Types.ObjectId;
+export type DocumentType = Mongoose.Document;
 
 // Define the user data structure
 const UserSchema = new Mongoose.Schema({
@@ -50,8 +52,8 @@ const QueueSchema = new Mongoose.Schema({
     Users: [ObjectIDType],
 });
 
-// Compile the schemas into models and export them.
-export const UserModel = Mongoose.model('User', UserSchema);
+// Compile the schemas into models.
+const UserModel = Mongoose.model('User', UserSchema);
 const CategoryModel = Mongoose.model('Category', CategorySchema);
 const LocationModel = Mongoose.model('Location', LocationSchema);
 const QueueModel = Mongoose.model('Queue', QueueSchema);

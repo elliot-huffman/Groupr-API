@@ -40,10 +40,12 @@ Passport.serializeUser(function(user: any, done) {
   done(null, user._id);
 });
 
-// Returns a user document based upon the ID.
+// Returns a user document based upon the ObjectID specified.
 Passport.deserializeUser(function(id, done) {
-  MongoInterface.UserModel.findById(id, function(err, user: any) {
-    done(err, user);
+  Database.getUSerByID(id).then((user: MongoInterface.DocumentType): any => {
+    done(null, user);
+  }).catch((error) => {
+    done(error);
   });
 });
 
@@ -57,7 +59,7 @@ var isAuthenticated = function (req:Express.Request, res:Express.Response, next:
 
 // Define how users log in
 Passport.use('login', new LocalStrategy(
-  {passReqToCallback : true,usernameField: 'email', passwordField: 'password'},
+  {passReqToCallback : true, usernameField: 'email', passwordField: 'password'},
   function(req, email, password, done) {
     let userLookup = Database.getUserByEmail(email);
     userLookup.then((results) => {
