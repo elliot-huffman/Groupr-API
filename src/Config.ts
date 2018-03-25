@@ -50,6 +50,19 @@ export const QueuerConfig = {
     // The gravity is expressed in percentages, e.g. 5 = 5% gravity.
     PremiumGravity: 5,
     UserBaseGravity: 1,
+    MaxUserSelectedCategories: 5,
+    Database: {
+        // URL needed for connecting to the DB, starts with "mongodb://" and then has standard domain notation, e.g. "elliot-labs.com"
+        Host: "localhost",
+        // Name of the database to open after connected to the DB server.
+        DatabaseName: "DataStorage",
+        // Port number that the DB runs off of.
+        Port: 27017,
+        // Username for DB authentication.
+        UserName: "blank",
+        // Password for DB authentication.
+        Password: "blank",
+    },
 }
 
 // Configures the test script.
