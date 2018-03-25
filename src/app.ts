@@ -42,7 +42,7 @@ Passport.serializeUser(function(user: any, done) {
 
 // Returns a user document based upon the ObjectID specified.
 Passport.deserializeUser(function(id, done) {
-  Database.getUSerByID(id).then((user: MongoInterface.DocumentType): any => {
+  Database.getUserByID(id).then((user: MongoInterface.DocumentType): any => {
     done(null, user);
   }).catch((error) => {
     done(error);
