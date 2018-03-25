@@ -43,6 +43,34 @@ export const AppConfig = {
 export const SecurityConfig = {
     // https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm_options
     HashAlgorithm: "sha512",
+    // Define the permission levels available to user accounts.
+    UserPermissionLevels: [
+        {
+            Name: "User",
+            Description: "A normal user of the system.",
+            Permissions: {
+                FrontEnd: true,
+            },
+        },
+        {
+            Name: "Banned",
+            Description: "A user that is no longer allowed to use the system.",
+            Permissions: {
+                FrontEnd: false,
+            },
+        },
+        {
+            Name: "Admin",
+            Description: "A user that has elevated access to everything.",
+            FrontEnd: true,
+            BackEnd: true,
+            Permissions: {
+                FrontEnd: true,
+                BackEnd: true,
+                Analytics: true,
+            },
+        }
+    ],
 }
 
 // Configures the queuer script.
