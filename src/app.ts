@@ -96,7 +96,7 @@ APIServer.post('/login', Passport.authenticate('login'),
 
 /* Handle User Creation */
 APIServer.post('/NewUser', function(req, res) {
-  let results = Database.newUser(req.body.email, SecurityInterface.HashPassword(req.body.password));
+  let results = Database.createUser(req.body.email, SecurityInterface.HashPassword(req.body.password));
   results.then((results) => {
     res.send(results);
   }).catch((results) => {
