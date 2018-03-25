@@ -33,7 +33,7 @@ export const AppConfig = {
         cookie: {
             httpOnly: false,
             maxAge: 365 * 24 * 60 * 60 * 1000,
-        }
+        },
         resave: false,
         saveUninitialized: false,
     },
@@ -43,6 +43,13 @@ export const AppConfig = {
 export const SecurityConfig = {
     // https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm_options
     HashAlgorithm: "sha512",
+}
+
+// Configures the queuer script.
+export const QueuerConfig = {
+    // The gravity is expressed in percentages, e.g. 5 = 5% gravity.
+    PremiumGravity: 5,
+    UserBaseGravity: 1,
 }
 
 // Configures the test script.
