@@ -202,7 +202,7 @@ export class Database {
 
     /*
 
-        User section. test
+        User section.
 
     */
 
