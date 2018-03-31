@@ -186,13 +186,6 @@ export class Database {
         });
     }
 
-    // TODO: Create the initial full random category at the top of the category pyramid.
-    // Only creates the category if the initial category does not exist.
-    // May need relocated to the constructor, will investigate.
-    initialFullRandomCategory() {
-        // pass
-    }
-
     // Closes the database connection.
     close(): Promise<void> {
         // This is generally not needed and for proper connection and resource usage, this should not be invoked as the interface reuses connections.
