@@ -230,9 +230,26 @@ export class Database {
         });
     };
 
-    // TODO, Delete a user account.
-    removeUser(UserID: ObjectID) {
-        // pass
+    // Delete a user account by the Object ID.
+    removeUser(UserID: ObjectID): Promise<Mongoose.Document> {
+        return new Promise((resolve, reject) => {
+            // Wait for a database connection before executing the user deletion.
+            this.waitForConnection().then(() => {
+                UserModel.findByIdAndRemove(UserID, (error, deletedDocument) => {
+                    // If any error occurs, reject the promise.
+                    if (error) reject(error);
+                    // Because a successful query can run and no results are found it will return null.
+                    // Filter the deleted document so that null queries are rejected. Only resolve successful queries.
+                    if (deletedDocument === null) {
+                        // Reject null document.
+                        reject(deletedDocument);
+                    } else {
+                        // Resolve successful document deletion.
+                        resolve(deletedDocument);
+                    }
+                });
+            });
+        });
     }
 
     // Updates a specified user (provide an object ID).
