@@ -208,21 +208,32 @@ export class Database {
 
     // Creates a new user
     createUser(email: string, password: string): Promise<Mongoose.Document> {
+        // Create a new promise.
         return new Promise((resolve, reject) => {
+            // Wait for the database to connect before executing the user creation.
             this.waitForConnection().then(() => {
+                // Run a search for an email address in the user database.
                 UserModel.findOne({eMail: email}, 'eMail', function (error, results) {
+                    // If an error occurs, reject the promise.
                     if (error) reject(error);
+                    // If no results were found, create the user.
                     if (results === null) {
+                        // Build the user's data structure.
                         const Data = {
                             eMail: email,
                             Password: password,
                         }
+                        // Create a new user document.
                         const newUser = new UserModel(Data);
+                        // Save the user's document.
                         newUser.save((error, results) => {
+                            // If there is an error during the save, reject the promise.
                             if (error) reject(error);
+                            // Otherwise resolve the promise with the results, a copy of the new user document.
                             resolve(results);
                         });
                     } else {
+                        // If the email already exists in the database, reject the promise and provide the reason.
                         reject("eMail already exists!");
                     }
                 });
@@ -232,9 +243,11 @@ export class Database {
 
     // Delete a user account by the Object ID.
     removeUser(UserID: ObjectID): Promise<Mongoose.Document> {
+        // Create a new promise.
         return new Promise((resolve, reject) => {
             // Wait for a database connection before executing the user deletion.
             this.waitForConnection().then(() => {
+                // Run the user query and if a mach is found, delete it.
                 UserModel.findByIdAndRemove(UserID, (error, deletedDocument) => {
                     // If any error occurs, reject the promise.
                     if (error) reject(error);
