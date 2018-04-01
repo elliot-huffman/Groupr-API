@@ -515,9 +515,23 @@ export class Database {
         });
     }
 
-    // TODO: List all categories and their data.
+    // List all categories and their data.
     getAllCategories() {
-        // pass
+        // Create a new promise.
+        return new Promise((resolve, reject) => {
+            // Wait for the database to connect.
+            this.waitForConnection().then(() => {
+                // Get all categories from the collection.
+                CategoryModel.find({}).then((results) => {
+                    // Resolve the promise with the results of the database query.
+                    resolve(results);
+                // If there is an error catch it.
+                }).catch((error) => {
+                    // Reject the promise with the details of the error.
+                    reject(error);
+                });
+            });
+        });
     }
 
     // TODO: Add a user to a category.
