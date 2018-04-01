@@ -264,7 +264,7 @@ export class Database {
     };
 
     // Delete a user account by the Object ID.
-    removeUser(UserID: ObjectID): Promise<Mongoose.Document> {
+    removeUser(UserID: ObjectID | string | number): Promise<Mongoose.Document> {
         // Create a new promise.
         return new Promise((resolve, reject) => {
             // Wait for a database connection before executing the user deletion.
@@ -365,7 +365,7 @@ export class Database {
     */
 
     // Create a category and link it to its parent.
-    createCategory(ParentID: ObjectID | string | number, Name: string, Description: string) {
+    createCategory(ParentID: ObjectID | string | number, Name: string, Description: string): Promise<Mongoose.Document> {
         // Create a new promise.
         return new Promise((resolve, reject) => {
             // Wait for the database connection before creating the new category.
@@ -407,11 +407,29 @@ export class Database {
         // pass
     }
 
-    // TODO: Remove a category.
-    // If the category has any children, will assign to parent.
-    // If children are events, will only move events to parent if parent has no other children.
-    removeCategory(CategoryID: ObjectID) {
-        // pass
+    // TODO: Remove a category. NOT DONE YET!!! NEEDS CHILD DETECTION!
+    // If the category has any children, deny deletion.
+    removeCategory(CategoryID: ObjectID | string | number): Promise<Mongoose.Document> {
+        // Create a new promise.
+        return new Promise((resolve, reject) => {
+            // Wait for a database connection before executing the category deletion.
+            this.waitForConnection().then(() => {
+                // Run the category query and if a mach is found, delete it.
+                CategoryModel.findByIdAndRemove(CategoryID, (error, deletedDocument) => {
+                    // If any error occurs, reject the promise.
+                    if (error) reject(error);
+                    // Because a successful query can run and no results are found it will return null.
+                    // Filter the deleted document so that null queries are rejected. Only resolve successful queries.
+                    if (deletedDocument === null) {
+                        // Reject null document.
+                        reject(deletedDocument);
+                    } else {
+                        // Resolve successful document deletion.
+                        resolve(deletedDocument);
+                    }
+                });
+            });
+        });
     }
 
     // TODO: List all categories and their data.
