@@ -58,6 +58,9 @@ const CategorySchema = new Mongoose.Schema({
     // Categories that are listed underneath this category in the pyramid of categories.
     // There should be no children listed if there are events present.
     Children: [ObjectIDType],
+    // Track which document is the parent.
+    // This field is not needed for the UI but for a good reference on the back end to track the parent doc.
+    ParentID: {type: ObjectIDType, required: true},
 });
 
 // Define the event data structure.
@@ -182,6 +185,32 @@ export class Database {
             } else {
                 // Reject the promise if we do not support the specific connection mode.
                 reject("Not connecting or connected!");
+            }
+        });
+    }
+
+    // Convert a string or a number to an ObjectID for use with mongoDB/Mongoose.
+    convertToObjectID(IDInput: ObjectID | string | number): Promise<ObjectID> {
+        // Create a new promise.
+        return new Promise((resolve, reject) => {
+            // If the input is a string or number, convert it.
+            if (typeof IDInput === "number" || typeof IDInput === "string") {
+                // Set up an error catcher for the string or number conversion.
+                // Execute the code in the try block and catch any errors that happen instead of crashing the program.
+                try {
+                    // Convert the input into an ObjectID and store the results in a variable.
+                    const IDOutput = Mongoose.Types.ObjectId(IDInput);
+                    // Resolve the promise with the results of the conversion to ObjectID.
+                    resolve(IDOutput);
+                // If an error occurs, pass the error as the error parameter and execute the below code.
+                } catch (error) {
+                    // If there is an error in the conversion process, reject the promise with the error details.
+                    reject(error);
+                }
+            // If it is already an object, pass it through without processing it.
+            } else {
+                // Resolve the promise with the ObjectID.
+                resolve(IDInput);
             }
         });
     }
@@ -335,9 +364,42 @@ export class Database {
 
     */
 
-    // TODO: Create a category.
-    createCategory(ParentID: ObjectID) {
-        // pass
+    // Create a category and link it to its parent.
+    createCategory(ParentID: ObjectID | string | number, Name: string, Description: string) {
+        // Create a new promise.
+        return new Promise((resolve, reject) => {
+            // Wait for the database connection before creating the new category.
+            this.waitForConnection().then(() => {
+                // Convert the parameter to an Object ID if it is not already an object ID.
+                this.convertToObjectID(ParentID).then((ParentIDConverted) => {
+                    // Build the data structure for the new category.
+                    const Data = {
+                        Name: Name,
+                        Description: Description,
+                        ParentID: ParentID,
+                    }
+                    // Create the new category in memory with the specified data.
+                    const newCategory = new CategoryModel(Data);
+                    // Save the new category to disk.
+                    newCategory.save((error, results) => {
+                        // If there is an error during the save, reject the promise.
+                        if (error) reject(error);
+                        // Update the parent category to include the new category as a child category.
+                        const parentResults = CategoryModel.findByIdAndUpdate(ParentIDConverted,{$push: {Children: results._id}});
+                        // If there was an error, report it. It is not don't ask don't tell here.
+                        parentResults.catch((error) => {
+                            // Reject the promise and return the error.
+                            reject(error);
+                        });
+                        // After the parent category has been successfully updates, execute the below.
+                        parentResults.then(() => {
+                            // Resolve the promise and return the results.
+                            resolve(results);
+                        });
+                    });
+                });                
+            });
+        });
     }
 
     // TODO: Change a category.
