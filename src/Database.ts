@@ -42,6 +42,24 @@ const UserSchema = new Mongoose.Schema({
     PermissionLevel: {type: String, default: "User"},
 });
 
+// Create user schema interface for use by the TypeScript engine to understand the custom data structure.
+// This is essentially meta-data for the TypeScript engine.
+interface UserSchema {
+    eMail: string,
+    Password: string,
+    Age?: number,
+    Gender?: string,
+    FirstName?: string,
+    EventsAttended?: number,
+    Ratings?: [{
+        UserID: ObjectID,
+        Rating: number,
+        Comment: string,
+    }],
+    IsPremium?: boolean,
+    PermissionLevel: string,
+}
+
 // Define the category data structure.
 const CategorySchema = new Mongoose.Schema({
     // Name of category
@@ -62,6 +80,18 @@ const CategorySchema = new Mongoose.Schema({
     // This field is not needed for the UI but for a good reference on the back end to track the parent doc.
     ParentID: {type: ObjectIDType, required: true},
 });
+
+// Create category schema interface for use by the TypeScript engine to understand the custom data structure.
+// This is essentially meta-data for the TypeScript engine.
+interface CategorySchema {
+    Name: string,
+    Description: string,
+    Users?: [ObjectID],
+    GravityPoints?: Number,
+    Events?: [ObjectID],
+    Children?: [ObjectID],
+    ParentID: ObjectID,
+}
 
 // Define the event data structure.
 const EventSchema = new Mongoose.Schema({
@@ -100,6 +130,27 @@ const EventSchema = new Mongoose.Schema({
     IsPremium: Boolean,
 });
 
+// Create event schema interface for use by the TypeScript engine to understand the custom data structure.
+// This is essentially meta-data for the TypeScript engine.
+interface EventSchema {
+    Name: string,
+    Location: string,
+    Category: ObjectID,
+    Owners: [ObjectID],
+    Visits?: Number,
+    AvailableTimePeriods?: [[Date, Date]],
+    UnavailableDates?: [Date],
+    MaxQueueCount?: Number,
+    QueueMaxUserCount?: Number,
+    CurrentQueues?: [ObjectID],
+    Ratings?: [{
+        UserID: ObjectID,
+        Rating: number,
+        Comment: string,
+    }],
+    IsPremium?: boolean,
+}
+
 // Define the queue data structure.
 const QueueSchema = new Mongoose.Schema({
     // Event that the queue is linked to.
@@ -113,11 +164,27 @@ const QueueSchema = new Mongoose.Schema({
     Fulfilled: Boolean,
 });
 
+// Create queue schema interface for use by the TypeScript engine to understand the custom data structure.
+// This is essentially meta-data for the TypeScript engine.
+interface QueueSchema {
+    Event: ObjectID,
+    MaxUserCount: number,
+    QueuedUsers?: [ObjectID],
+    Fulfilled?: Boolean,
+}
+
+// Define the data structure of the document models.
+// This is also meta-data for the typescript compiler.
+interface UserModel extends UserSchema, Mongoose.Document {}
+interface CategoryModel extends CategorySchema, Mongoose.Document {}
+interface EventModel extends EventSchema, Mongoose.Document {}
+interface QueueModel extends QueueSchema, Mongoose.Document {}
+
 // Compile the schemas into models.
-const UserModel = Mongoose.model('User', UserSchema);
-const CategoryModel = Mongoose.model('Category', CategorySchema);
-const EventModel = Mongoose.model('Event', EventSchema);
-const QueueModel = Mongoose.model('Queue', QueueSchema);
+const UserModel = Mongoose.model<UserModel>('User', UserSchema);
+const CategoryModel = Mongoose.model<CategoryModel>('Category', CategorySchema);
+const EventModel = Mongoose.model<EventModel>('Event', EventSchema);
+const QueueModel = Mongoose.model<QueueModel>('Queue', QueueSchema);
 
 export class Database {
     // Define the class properties.
@@ -407,25 +474,41 @@ export class Database {
         // pass
     }
 
-    // TODO: Remove a category. NOT DONE YET!!! NEEDS CHILD DETECTION!
+    // Delete a category.
     // If the category has any children, deny deletion.
     removeCategory(CategoryID: ObjectID | string | number): Promise<Mongoose.Document> {
         // Create a new promise.
         return new Promise((resolve, reject) => {
             // Wait for a database connection before executing the category deletion.
             this.waitForConnection().then(() => {
-                // Run the category query and if a mach is found, delete it.
-                CategoryModel.findByIdAndRemove(CategoryID, (error, deletedDocument) => {
-                    // If any error occurs, reject the promise.
-                    if (error) reject(error);
-                    // Because a successful query can run and no results are found it will return null.
-                    // Filter the deleted document so that null queries are rejected. Only resolve successful queries.
-                    if (deletedDocument === null) {
-                        // Reject null document.
-                        reject(deletedDocument);
+                // Check for the document before running the delete command.
+                CategoryModel.findById(CategoryID).then((results) => {
+                    // If there are no documents, reject the promise. Otherwise go ahead with the deletion process.
+                    if (results === null) {
+                        // Reject the promise.
+                        reject("No document found!");
                     } else {
-                        // Resolve successful document deletion.
-                        resolve(deletedDocument);
+                        // Check if the category has any children. If it does, reject the promise and stop execution.
+                        // Otherwise continue with the category deletion.
+                        if (typeof results.Children !== 'undefined' && results.Children.length > 0) {
+                            // Run the category query and if a mach is found, delete it.
+                            CategoryModel.findByIdAndRemove(CategoryID, (error, deletedDocument) => {
+                                // If any error occurs, reject the promise.
+                                if (error) reject(error);
+                                // Because a successful query can run and no results are found it will return null.
+                                // Filter the deleted document so that null queries are rejected. Only resolve successful queries.
+                                if (deletedDocument === null) {
+                                    // Reject null document.
+                                    reject(deletedDocument);
+                                } else {
+                                    // Resolve successful document deletion.
+                                    resolve(deletedDocument);
+                                }
+                            });
+                        } else {
+                            // Reject the promise because the category has children.
+                            reject("Can't delete, category has children: " + results.Children);
+                        }
                     }
                 });
             });
