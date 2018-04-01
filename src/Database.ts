@@ -355,12 +355,7 @@ export class Database {
     }
 
     // Updates a specified user (provide an object ID).
-    updateUser(email: string, Data: {
-        eMail?: String,
-        DisplayName?: String,
-        Password?: String,
-        EventsAttended?: Number,
-    }): Promise<Mongoose.Document> {
+    updateUser(email: string, Data: UserSchema): Promise<Mongoose.Document> {
         return new Promise((resolve, reject) => {
             this.waitForConnection().then(() => {
                 if (email === undefined) {
