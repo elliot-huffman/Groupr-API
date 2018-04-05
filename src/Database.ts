@@ -529,9 +529,51 @@ export class Database {
         });
     }
 
-    // TODO: Add a user to a category.
+    // Add a user to a category.
     addUserToCategory(CategoryID: ObjectID, UserID: ObjectID) {
-        // pass
+        // Create a new promise.
+        return new Promise((resolve, reject) => {
+            // Wait for a database connection.
+            this.waitForConnection().then(() => {
+                // Find a category by its ID.
+                CategoryModel.findById(CategoryID).then((results) => {
+                    // If nothing is found, reject the promise.
+                    if (results === null) {
+                        // Reject the promise.
+                        reject("No category found!");
+                    // Otherwise process the script.
+                    } else {
+                        // If no users array is present, create one and populate the data.
+                        if (results.Users === undefined) {
+                            // Add the userID to the users array.
+                            results.Users = [UserID];
+                            // Save the modified document to the database.
+                            // Store the promise that is returned from the save operation into a variable.
+                            var internalPromise = results.save();
+                        } else {
+                            // Add the User ID to the existing array.
+                            results.Users.push(UserID);
+                            // Save the modified document from memory to disk.
+                            // Store the promise that is returned from the save operation into a variable.
+                            var internalPromise = results.save();
+                        }
+                        // Access the promise that was generated from saving the document.
+                        internalPromise.then(() => {
+
+                        });
+                    }
+                // Make a note on the user profile which category they are joined to.
+                }).then(() => {
+                    UserModel.findById(UserID).then((results) => {
+                        if (results === null) {
+                            reject("No User ID found");
+                        } else {
+                            
+                        }
+                    })
+                });
+            });
+        });
     }
 
     // TODO: Remove a user from a category.
