@@ -22,6 +22,9 @@ const UserSchema = new Mongoose.Schema({
     // User's first name. Used for analytics.
     // May be used for exclusive events/customization.
     FirstName: String,
+    // A list of categories that a user is joined to.
+    // This is stored here for easy retrieval instead of having to do an entire DB search.
+    JoinedCategories: [ObjectIDType],
     // User's event attendance. Used for analytics.
     // May be used for exclusive events.
     EventsAttended: Number,
@@ -50,6 +53,7 @@ interface UserSchema {
     Age?: number,
     Gender?: string,
     FirstName?: string,
+    JoinedCategories?: [ObjectID],
     EventsAttended?: number,
     Ratings?: [{
         UserID: ObjectID,
@@ -530,47 +534,58 @@ export class Database {
     }
 
     // Add a user to a category.
-    addUserToCategory(CategoryID: ObjectID, UserID: ObjectID) {
+    addUserToCategory(CategoryID: ObjectID, UserID: ObjectID): Promise<[CategoryModel, UserModel]> {
         // Create a new promise.
         return new Promise((resolve, reject) => {
             // Wait for a database connection.
             this.waitForConnection().then(() => {
                 // Find a category by its ID.
-                CategoryModel.findById(CategoryID).then((results) => {
-                    // If nothing is found, reject the promise.
-                    if (results === null) {
-                        // Reject the promise.
-                        reject("No category found!");
-                    // Otherwise process the script.
-                    } else {
-                        // If no users array is present, create one and populate the data.
-                        if (results.Users === undefined) {
-                            // Add the userID to the users array.
-                            results.Users = [UserID];
-                            // Save the modified document to the database.
-                            // Store the promise that is returned from the save operation into a variable.
-                            var internalPromise = results.save();
+                CategoryModel.findById(CategoryID).then((categoryResults) => {
+                    UserModel.findById(UserID).then((userResults) => {
+                        if (categoryResults === null) {
+                            // Reject the promise.
+                            reject("No category found!");
+                        } else if (userResults === null) {
+                            // Reject the promise.
+                            reject("No user found!");
                         } else {
-                            // Add the User ID to the existing array.
-                            results.Users.push(UserID);
-                            // Save the modified document from memory to disk.
-                            // Store the promise that is returned from the save operation into a variable.
-                            var internalPromise = results.save();
+                            // If no users array is present, create one and populate the data.
+                            if (categoryResults.Users === undefined) {
+                                // Add the userID to the users array.
+                                categoryResults.Users = [UserID];
+                                // Save the modified document to the database.
+                                // Store the promise that is returned from the save operation into a variable.
+                                var categoryPromise = categoryResults.save();
+                            // Otherwise add the user to the existing array.
+                            } else {
+                                // Add the User ID to the existing array.
+                                categoryResults.Users.push(UserID);
+                                // Save the modified document from memory to disk.
+                                // Store the promise that is returned from the save operation into a variable.
+                                var categoryPromise = categoryResults.save();
+                            }
+                            // If no category array is present, create one and populate the data.
+                            if (userResults.JoinedCategories === undefined) {
+                                // Add the CategoryID to the JoinedCategories array.
+                                userResults.JoinedCategories = [CategoryID];
+                                // Save the modified document to the database.
+                                // Store the promise that is returned from the save operation into a variable.
+                                var userPromise = userResults.save();
+                            // Otherwise add the category to the existing array.
+                            } else {
+                                // Add the CategoryID to the existing array.
+                                userResults.JoinedCategories.push(CategoryID);
+                                // Save the modified document from memory to disk.
+                                // Store the promise that is returned from the save operation into a variable.
+                                var userPromise = userResults.save();
+                            }
+                            Promise.all([categoryPromise, userPromise]).then((results) => {
+                                resolve(results);
+                            }).catch((error) => {
+                                reject(error);
+                            });
                         }
-                        // Access the promise that was generated from saving the document.
-                        internalPromise.then(() => {
-
-                        });
-                    }
-                // Make a note on the user profile which category they are joined to.
-                }).then(() => {
-                    UserModel.findById(UserID).then((results) => {
-                        if (results === null) {
-                            reject("No User ID found");
-                        } else {
-                            
-                        }
-                    })
+                    });
                 });
             });
         });
