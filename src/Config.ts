@@ -79,6 +79,7 @@ export const QueuerConfig = {
     PremiumGravity: 5,
     UserBaseGravity: 1,
     MaxUserSelectedCategories: 5,
+    WeightedRandomizationPrecision: 10,
     Database: AppConfig.Database,
 }
 
