@@ -73,7 +73,7 @@ const CategorySchema = new Mongoose.Schema({
     // Users that are currently subscribed to this category.
     Users: [ObjectIDType],
     // Number of points assigned to this category to weight, in favor, the probability of this category getting selected.
-    GravityPoints: Number,
+    Tokens: Number,
     // Events listed in an array that are a part of this category.
     // If events exist then no other children categories should exist.
     Events: [ObjectIDType],
@@ -91,7 +91,7 @@ interface CategorySchema {
     Name: string,
     Description: string,
     Users?: [ObjectID],
-    GravityPoints?: Number,
+    Tokens?: Number,
     Events?: [ObjectID],
     Children?: [ObjectID],
     ParentID: ObjectID,

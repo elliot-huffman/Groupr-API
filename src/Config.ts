@@ -44,6 +44,13 @@ export const SecurityConfig = {
     // https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm_options
     HashAlgorithm: "sha512",
     // Define the permission levels available to user accounts.
+
+    /*
+        List of permissions:
+        FrontEnd: boolean - Sets the ability of the group to access the front end app.
+        BackEnd: boolean - Sets the ability of the group to access the back end app.
+        Analytics: boolean - Sets the ability of the group to view analytics on the backbend app.
+    */
     UserPermissionLevels: [
         {
             Name: "User",
@@ -76,10 +83,8 @@ export const SecurityConfig = {
 // Configures the queuer script.
 export const QueuerConfig = {
     // The gravity is expressed in percentages, e.g. 5 = 5% gravity.
-    PremiumGravity: 5,
-    UserBaseGravity: 1,
+    TokenPower: 1,
     MaxUserSelectedCategories: 5,
-    WeightedRandomizationPrecision: 10,
     Database: AppConfig.Database,
 }
 
