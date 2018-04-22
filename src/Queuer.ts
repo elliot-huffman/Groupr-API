@@ -27,7 +27,7 @@ function FulfillQueue(QueueID: MongoInterface.ObjectID) {
     // pass
 }
 
-// Builds the percentage chances and randomly picks out a result factoring in the chance of picking that result.
+// Builds the chances based upon the amount of tokens and randomly picks out a result.
 function weightedRandom(inputObject: Array<itemDefinition>): Promise<MongoInterface.ObjectID> {
     // Create a new promise.
     return new Promise((resolve, reject) => {
