@@ -1,4 +1,5 @@
 import * as Mongoose from "mongoose";
+import * as Queuer from "./Queuer";
 
 // Simplify the ObjectID type for schema definitions.
 const ObjectIDType = Mongoose.Schema.Types.ObjectId;
@@ -78,8 +79,9 @@ const CategorySchema = new Mongoose.Schema({
     // If events exist then no other children categories should exist.
     Events: [ObjectIDType],
     // Categories that are listed underneath this category in the pyramid of categories.
-    // There should be no children listed if there are events present.
-    Children: [ObjectIDType],
+    categoryChildren: [ObjectIDType],
+    // Events that are listed underneath this category.
+    eventChildren: [ObjectIDType],
     // Track which document is the parent.
     // This field is not needed for the UI but for a good reference on the back end to track the parent doc.
     ParentID: {type: ObjectIDType, required: true},
@@ -91,9 +93,10 @@ interface CategorySchema {
     Name: string,
     Description: string,
     Users?: [ObjectID],
-    Tokens?: Number,
+    Tokens?: number,
     Events?: [ObjectID],
-    Children?: [ObjectID],
+    categoryChildren?: [ObjectID],
+    eventChildren?: [ObjectID],
     ParentID: ObjectID,
 }
 
@@ -424,6 +427,51 @@ export class Database {
         });
     }
 
+    // TODO
+    // OPTIMIZE ME!!!
+    // Sort the user into a queue after being added to a category.
+    sortUser(CategoryID: ObjectID, UserID: ObjectID): Promise<CategoryModel> {
+        return new Promise((resolve, reject) => {
+            this.getCategoryByID(CategoryID).then((currentCategory) => {
+                if (currentCategory.categoryChildren === undefined || !currentCategory.categoryChildren.length) {
+                    // Add user to a queue here.
+                } else {
+                    // Initialize the randomization table.
+                    let randomizeTable: Array<Queuer.itemDefinition> = [];
+                    // For each child category 
+                    for (let index = 0; index < currentCategory.categoryChildren.length; index++) {
+                        const category = currentCategory.categoryChildren[index];
+                        this.getCategoryByID(category).then((results) => {
+                            if (results.Tokens === undefined) {
+                                var resultsTokens = 0;
+                            } else {
+                                var resultsTokens = results.Tokens;
+                            }
+                            randomizeTable.push({id: results._id, tokens: resultsTokens});
+                        });
+                    }
+                    if (!randomizeTable.length) {
+                        reject("Nothing went into the randomize table, Danger Will Robinson!!!");
+                    } else {
+                        this.getCategoryByID(Queuer.weightedRandom(randomizeTable)).then((results) => {
+                            if (results.categoryChildren === undefined || !results.categoryChildren.length) {
+                                if (results.eventChildren === undefined || !results.eventChildren.length) {
+                                    // do stuff here.
+                                } else {
+                                    // do stuff here
+                                }
+                            } else {
+                                // do stuff here
+                            }
+                        });
+                    }
+                }
+            }).catch((error) => {
+                reject(error);
+            });
+        });
+    }
+
     /*
 
         Category section.
@@ -473,6 +521,7 @@ export class Database {
         // pass
     }
 
+    // TODO: FIX ME!
     // Delete a category.
     // If the category has any children, deny deletion.
     removeCategory(CategoryID: ObjectID | string | number): Promise<Mongoose.Document> {
@@ -489,7 +538,7 @@ export class Database {
                     } else {
                         // Check if the category has any children. If it does, reject the promise and stop execution.
                         // Otherwise continue with the category deletion.
-                        if (typeof results.Children !== 'undefined' && results.Children.length > 0) {
+                        if (results.categoryChildren !== undefined && results.eventChildren !== undefined && !results.categoryChildren.length && !results.eventChildren.length) {
                             // Run the category query and if a mach is found, delete it.
                             CategoryModel.findByIdAndRemove(CategoryID, (error, deletedDocument) => {
                                 // If any error occurs, reject the promise.
@@ -506,7 +555,7 @@ export class Database {
                             });
                         } else {
                             // Reject the promise because the category has children.
-                            reject("Can't delete, category has children: " + results.Children);
+                            reject("Can't delete, category has children: " + results.categoryChildren);
                         }
                     }
                 });
@@ -515,7 +564,7 @@ export class Database {
     }
 
     // List all categories and their data.
-    getAllCategories() {
+    getAllCategories(): Promise<Array<CategoryModel>> {
         // Create a new promise.
         return new Promise((resolve, reject) => {
             // Wait for the database to connect.
@@ -529,6 +578,29 @@ export class Database {
                     // Reject the promise with the details of the error.
                     reject(error);
                 });
+            });
+        });
+    }
+
+    // Get and return a category by its ID.
+    getCategoryByID(CategoryID: ObjectID): Promise<CategoryModel> {
+        // Create a promise.
+        return new Promise((resolve, reject) => {
+            // look for a category by its ID.
+            CategoryModel.findById(CategoryID).then((results) => {
+                // if there is no category found, throw an error.
+                if (results === null) {
+                    // reject the promise with the error info.
+                    reject("No Category found for that ID!");
+                // Otherwise resolve the promise with the found category.
+                } else {
+                    // Resolve the promise with the category data.
+                    resolve(results);
+                }
+            // If there was an error during lookup, reject the promise.
+            }).catch((error) => {
+                // Reject the promise.
+                reject(error);
             });
         });
     }
