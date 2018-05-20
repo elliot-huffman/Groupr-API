@@ -71,6 +71,14 @@ const CategorySchema = new Mongoose.Schema({
     Name: {type: String, required: true},
     // Long form description of a category.
     Description: {type: String, required: true},
+    // Category can be disabled if no users should flow through it.
+    // Can only be enabled if there are children present and they are not of different types (events, categories).
+    Enabled: {type: Boolean, default: false},
+    // A field that specifies what type of category this is.
+    // If it is an event endpoint it would say "event".
+    // If it is a category parent then it would say "category".
+    // If no type is declared then it would have the type of "none".
+    Type: {type: String, default: "None"},
     // Users that are currently subscribed to this category.
     Users: [ObjectIDType],
     // Number of points assigned to this category to weight, in favor, the probability of this category getting selected.
@@ -80,8 +88,6 @@ const CategorySchema = new Mongoose.Schema({
     Events: [ObjectIDType],
     // Categories that are listed underneath this category in the pyramid of categories.
     categoryChildren: [ObjectIDType],
-    // Events that are listed underneath this category.
-    eventChildren: [ObjectIDType],
     // Track which document is the parent.
     // This field is not needed for the UI but for a good reference on the back end to track the parent doc.
     ParentID: {type: ObjectIDType, required: true},
@@ -92,11 +98,12 @@ const CategorySchema = new Mongoose.Schema({
 interface CategorySchema {
     Name: string,
     Description: string,
+    Enabled: boolean,
+    Type: "Event" | "Category" | "None",
     Users?: [ObjectID],
     Tokens?: number,
     Events?: [ObjectID],
     categoryChildren?: [ObjectID],
-    eventChildren?: [ObjectID],
     ParentID: ObjectID,
 }
 
@@ -428,47 +435,88 @@ export class Database {
     }
 
     // TODO
-    // OPTIMIZE ME!!!
-    // Sort the user into a queue after being added to a category.
-    sortUser(CategoryID: ObjectID, UserID: ObjectID): Promise<CategoryModel> {
+    // Bootstrapper for the user sorter function.
+    // This code is async as the sorter can take some time.
+    sortUser(CategoryID: ObjectID, UserID: ObjectID): Promise<any> {
+        // Create a new promise.
         return new Promise((resolve, reject) => {
-            this.getCategoryByID(CategoryID).then((currentCategory) => {
-                if (currentCategory.categoryChildren === undefined || !currentCategory.categoryChildren.length) {
-                    // Add user to a queue here.
-                } else {
-                    // Initialize the randomization table.
-                    let randomizeTable: Array<Queuer.itemDefinition> = [];
-                    // For each child category 
-                    for (let index = 0; index < currentCategory.categoryChildren.length; index++) {
-                        const category = currentCategory.categoryChildren[index];
-                        this.getCategoryByID(category).then((results) => {
-                            if (results.Tokens === undefined) {
-                                var resultsTokens = 0;
-                            } else {
-                                var resultsTokens = results.Tokens;
+            // Execute the user sorter.
+            this.UserSorter(CategoryID, UserID);
+        });
+    }
+
+    // TODO (needs user event sorter completed to finalize the typings).
+    // This is the code that does the heavy lifting.
+    // It is isolated and synchronous for ease of use.
+    UserSorter(CategoryID: ObjectID, UserID: ObjectID) {
+        // Look up the current category by its Object ID.
+        this.getCategoryByID(CategoryID).then((currentCategory) => {
+            // Check if the category is enabled.
+            if (currentCategory.Enabled) {
+                // Chose the correct code based upon the type of the category.
+                switch (currentCategory.Type) {
+                    // If the category is an event parent, process the event user sorter.
+                    case "Event":
+                        // Sort a user to an event queue.
+                        return this.sortUserToEvent(CategoryID, UserID);
+                    // If the category is a category parent, sort user into sub category.
+                    case "Category":
+                        // Initialize a randomization table.
+                        let randomizeTable: Array<Queuer.itemDefinition> = [];
+                        // Check if the data required is present. This is mostly to satisfy typescript's good programing error checker.
+                        if (currentCategory.categoryChildren === undefined || !currentCategory.categoryChildren.length) {
+                            // If no required data, throw an error.
+                            return "No children category!";
+                        // Otherwise, process the filtering of the user into a category.
+                        } else {
+                            // For each child category, add it to the randomization table.
+                            for (let index = 0; index < currentCategory.categoryChildren.length; index++) {
+                                // Expose the category child.
+                                const category = currentCategory.categoryChildren[index];
+                                // Get data on the selected category.
+                                this.getCategoryByID(category).then((results) => {
+                                    // If no tokens are defined, set it equal to 0.
+                                    if (results.Tokens === undefined) {
+                                        // Set the results tokens equal to 0.
+                                        var resultsTokens = 0;
+                                    // Otherwise just grab the data that is already there.
+                                    } else {
+                                        // Set the results tokes variable to equal the tokens of the selected category.
+                                        var resultsTokens = results.Tokens;
+                                    }
+                                    // If the category has uses in it, take it into account.
+                                    if (results.Users !== undefined) {
+                                        // Add the number of users in the category to the overall token counter.
+                                        resultsTokens = resultsTokens + results.Users.length;
+                                    }
+                                    // Add the data to the randomization table.
+                                    randomizeTable.push({id: results._id, tokens: resultsTokens});
+                                });
                             }
-                            randomizeTable.push({id: results._id, tokens: resultsTokens});
-                        });
-                    }
-                    if (!randomizeTable.length) {
-                        reject("Nothing went into the randomize table, Danger Will Robinson!!!");
-                    } else {
-                        this.getCategoryByID(Queuer.weightedRandom(randomizeTable)).then((results) => {
-                            if (results.categoryChildren === undefined || !results.categoryChildren.length) {
-                                if (results.eventChildren === undefined || !results.eventChildren.length) {
-                                    // do stuff here.
-                                } else {
-                                    // do stuff here
-                                }
+                            // If something went wrong with the table addition, throw an error.
+                            if (!randomizeTable.length) {
+                                // Throw an error with the details.
+                                return "Nothing went into the randomize table, Danger Will Robinson!!!";
                             } else {
-                                // do stuff here
+                                // Weighted randomly select a category and store the results.
+                                const randomCategory = Queuer.weightedRandom(randomizeTable);
+                                this.UserSorter(randomCategory, UserID);
                             }
-                        });
-                    }
+                        }
+                        break;
+                    case "None":
+                        // This should not be present.
+                        return "No category type set, this should not be enabled."
+                    // If for some reason there is no suitable type, throw an error.
+                    default:
+                        return "Category type is not recognized!"
                 }
-            }).catch((error) => {
-                reject(error);
-            });
+            } else {
+                // Return that the category is not enabled.
+                return "Category not enabled!";
+            }
+        }).catch((error) => {
+            return error;
         });
     }
 
@@ -538,7 +586,7 @@ export class Database {
                     } else {
                         // Check if the category has any children. If it does, reject the promise and stop execution.
                         // Otherwise continue with the category deletion.
-                        if (results.categoryChildren !== undefined && results.eventChildren !== undefined && !results.categoryChildren.length && !results.eventChildren.length) {
+                        if (results.categoryChildren !== undefined && results.Events !== undefined && !results.categoryChildren.length && !results.Events.length) {
                             // Run the category query and if a mach is found, delete it.
                             CategoryModel.findByIdAndRemove(CategoryID, (error, deletedDocument) => {
                                 // If any error occurs, reject the promise.
@@ -696,6 +744,11 @@ export class Database {
     // TODO: Update and event.
     // Only owners/admins can update an event.
     updateEvent(EventID: ObjectID, UserID: ObjectID, data: Object) {
+        // pass
+    }
+
+    // TODO: Sort a user to an event after user gets to the last category in the tree.
+    sortUserToEvent(UserID: ObjectID, CategoryID: ObjectID) {
         // pass
     }
 
