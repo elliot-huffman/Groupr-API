@@ -79,7 +79,7 @@ const CategorySchema = new Mongoose.Schema({
     // If it is a category parent then it would say "category".
     // If no type is declared then it would have the type of "none".
     Type: {type: String, default: "None"},
-    // Users that are currently subscribed to this category.
+    // Users that are currently subscribed to a queue in this category.
     Users: [ObjectIDType],
     // Number of points assigned to this category to weight, in favor, the probability of this category getting selected.
     Tokens: Number,
@@ -111,10 +111,13 @@ interface CategorySchema {
 const EventSchema = new Mongoose.Schema({
     // Human friendly name.
     Name: {type: String, required: true},
-    // Geo location.
+    // The current useability status of the event: true = useable, false = unusable.
+    // Can only be enabled if a queue is available to the event.
+    Enabled: {type: Boolean, default: false},
+    // Geo location. String is just a place holder for geo coords.
     Location: {type: String, required: true},
     // Category that the event is listed underneath.
-    Category: {type: ObjectIDType, required: true},
+    ParentCategory: {type: ObjectIDType, required: true},
     // The owner(s) of the event is allowed to make changes to it.
     Owners: [{type: ObjectIDType, required: true}],
     // The number of people sent to this event from queues. Used for analytics and is mostly a placeholder for the future.
@@ -124,12 +127,17 @@ const EventSchema = new Mongoose.Schema({
     AvailableTimePeriods: [[Date, Date]],
     // Unavailable dates are days of the year that the event is unavailable (E.G. closed for holidays).
     UnavailableDates: [Date],
+    // A list of users that are in the event's queue.
+    Users: [ObjectIDType],
     // The max number of queues this event can have.
     MaxQueueCount: Number,
     // The maximum users that a single queue can hold.
     QueueMaxUserCount: Number,
-    // A list of queues in an array for a event.
-    CurrentQueues: [ObjectIDType],
+    // The current queue for the event.
+    CurrentQueue: ObjectIDType,
+    // An array of all of the available queues for this event.
+    // Should not exceed the max queue count.
+    QueueList: [ObjectIDType],
     // Array of ratings of an event by users.
     // Used for analytics/admin.
     Ratings: [{
@@ -141,6 +149,7 @@ const EventSchema = new Mongoose.Schema({
         Comment: String,
     }],
     // Identifier for event to specify if it is premium.
+    // TODO needs to be updated after pricing system is figured out.
     IsPremium: Boolean,
 });
 
@@ -148,20 +157,23 @@ const EventSchema = new Mongoose.Schema({
 // This is essentially meta-data for the TypeScript engine.
 interface EventSchema {
     Name: string,
+    Enabled: boolean,
     Location: string,
-    Category: ObjectID,
-    Owners: [ObjectID],
+    ParentCategory: ObjectID,
+    Owners: Array<ObjectID>,
     Visits?: Number,
-    AvailableTimePeriods?: [[Date, Date]],
-    UnavailableDates?: [Date],
+    AvailableTimePeriods?: Array<[Date, Date]>,
+    UnavailableDates?: Array<Date>,
+    Users?: Array<ObjectID>,
     MaxQueueCount?: Number,
     QueueMaxUserCount?: Number,
-    CurrentQueues?: [ObjectID],
-    Ratings?: [{
+    CurrentQueue?: ObjectID,
+    QueueList: Array<ObjectID>,
+    Ratings?: Array<{
         UserID: ObjectID,
         Rating: number,
         Comment: string,
-    }],
+    }>,
     IsPremium?: boolean,
 }
 
@@ -735,6 +747,29 @@ export class Database {
         // pass
     }
 
+    // Get and return an event by its ID.
+    getEventByID(EventID: ObjectID): Promise<EventModel> {
+        // Create a promise.
+        return new Promise((resolve, reject) => {
+            // look for an Event by its ID.
+            EventModel.findById(EventID).then((results) => {
+                // if there is no event found, throw an error.
+                if (results === null) {
+                    // reject the promise with the error info.
+                    reject("No Event found for that ID!");
+                // Otherwise resolve the promise with the found event.
+                } else {
+                    // Resolve the promise with the event data.
+                    resolve(results);
+                }
+            // If there was an error during lookup, reject the promise.
+            }).catch((error) => {
+                // Reject the promise.
+                reject(error);
+            });
+        });
+    }
+
     // TODO: List all events and their data.
     // This would only be used on the admin side of things.
     getAllEvents() {
@@ -749,7 +784,29 @@ export class Database {
 
     // TODO: Sort a user to an event after user gets to the last category in the tree.
     sortUserToEvent(UserID: ObjectID, CategoryID: ObjectID) {
-        // pass
+        // Look up the current category by its Object ID.
+        this.getCategoryByID(CategoryID).then((currentCategory) => {
+            if (currentCategory.Enabled === true) {
+                if (currentCategory.Type === "Event") {
+                    if (currentCategory.Events === undefined || !currentCategory.Events.length) {
+                        return "No events are found!";
+                    } else {
+                        for (let index = 0; index < currentCategory.Events.length; index++) {
+                            const currentEvent = currentCategory.Events[index];
+                            this.getEventByID(currentEvent).then((results) => {
+                                if (results.CurrentQueue !== undefined) {
+                                    // pass, needs a re-write.
+                                }
+                            });
+                        }
+                    }
+                } else {
+                    return "Category is not an event parent!";
+                }
+            } else {
+                return "Category is not enabled!";
+            }
+        });
     }
 
     /*
@@ -766,6 +823,29 @@ export class Database {
     // TODO: Delete a queue.
     removeQueue(QueueID: ObjectID) {
         // pass
+    }
+
+    // Get and return a queue by its ID.
+    getQueueByID(QueueID: ObjectID): Promise<QueueModel> {
+        // Create a promise.
+        return new Promise((resolve, reject) => {
+            // look for a queue by its ID.
+            QueueModel.findById(QueueID).then((results) => {
+                // if there is no queue found, throw an error.
+                if (results === null) {
+                    // reject the promise with the error info.
+                    reject("No Queue found for that ID!");
+                // Otherwise resolve the promise with the found queue.
+                } else {
+                    // Resolve the promise with the queue data.
+                    resolve(results);
+                }
+            // If there was an error during lookup, reject the promise.
+            }).catch((error) => {
+                // Reject the promise.
+                reject(error);
+            });
+        });
     }
 
     // TODO: List all queues and their data.
